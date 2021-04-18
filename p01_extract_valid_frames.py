@@ -22,5 +22,7 @@ for index in range(frame_count):
         break
     print(f"  {index + 1: 5}/{frame_count}\u000D", end="")
     output.write(frame)
+else:
+    print("")
 
 output.release()
