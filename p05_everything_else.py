@@ -1,10 +1,10 @@
-from enum import Enum, unique
-from typing import Dict, List, NamedTuple, Tuple
+import enum
+from typing import Dict, List, Set
 
-import cv2 as cv
-import numpy as np
+import cv2 as _cv
+import numpy as _np
 
-from _util import get_frames
+from _util import get_frames as _get_frames
 
 
 CANNY_LOW_THRESHOLD = 50
@@ -34,22 +34,24 @@ class Rect:
         return f"({self.x}x,{self.y}y,{self.width}w,{self.height}h)"
 
 
-@unique
-class LedState(Enum):
+@enum.unique
+class _LedState(enum.Enum):
     ON = True
     OFF = False
 
     @staticmethod
-    def get_state(rect: Rect, grayframe: np.ndarray) -> "LedState":
-        """grayframe: np.ndarray(y, x)"""
-        frame = grayframe[rect.y:(rect.y + rect.height), rect.x:(rect.x + rect.width)]
+    def get_state(rect: Rect, grayframe: _np.ndarray) -> "_LedState":
+        """grayframe: _np.ndarray(y, x)"""
+        frame = grayframe[
+            rect.y : (rect.y + rect.height), rect.x : (rect.x + rect.width)
+        ]
         frame[frame < LED_ON_LOW_THRESHOLD] = 0
-        return LedState.ON if frame.mean() > LED_ON_LOW_THRESHOLD else LedState.OFF
+        return _LedState.ON if frame.mean() > LED_ON_LOW_THRESHOLD else _LedState.OFF
 
 
-class Timeline:
+class _Timeline:
     _headers: List[str]
-    _store: Dict[int, List[LedState]]
+    _store: Dict[int, List[_LedState]]
 
     def __init__(self):
         super().__init__()
@@ -66,55 +68,64 @@ class Timeline:
             rows.append(",".join(cells))
         return "\n".join(rows)
 
-    def record(self, rects: List[Rect], grayframes: np.ndarray) -> None:
-        """grayframes: np.ndarray(t, y, x)"""
+    def record(self, rects: List[Rect], grayframes: _np.ndarray) -> None:
+        """grayframes: _np.ndarray(t, y, x)"""
         self._headers += [r.name.replace(",", ";") for r in rects]
         for i in range(grayframes.shape[0]):
-            self._store[i] = [LedState.get_state(r, grayframes[i]) for r in rects]
+            self._store[i] = [_LedState.get_state(r, grayframes[i]) for r in rects]
 
 
-diff_frames = get_frames(cv.VideoCapture("target_p04_diff.mp4"), grayscale=True)
+def detect_leds(source: str) -> List[Rect]:
+    diff_frames = _get_frames(_cv.VideoCapture(source), grayscale=True)
 
-print("Detecting LEDs...")
-rects: List[Rect] = []
-for i in range(diff_frames.shape[0]):
-    blurred = cv.blur(diff_frames[i], (3,3))
-    edges = cv.Canny(blurred, CANNY_LOW_THRESHOLD, CANNY_LOW_THRESHOLD * 3, 3)
-    contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    hulls = []
-    for c in contours:
-        hulls.append(cv.convexHull(c))
-    # Find the indices of hulls that lie inside another hull.
-    nested_hull_indices = set()
-    if len(hulls) > 1:
-        for j, h1 in enumerate(hulls):
-            for k, h2 in enumerate(hulls):
-                if h1 is h2:
-                    continue
-                area, _ = cv.intersectConvexConvex(h1, h2, handleNested=True)
-                if area > 0.0:
-                    if area == cv.contourArea(h1):
-                        nested_hull_indices.add(j)
-                    elif area == cv.contourArea(h2):
-                        nested_hull_indices.add(k)
-    # Create bounding rectanges
-    for j, h in enumerate(hulls):
-        if j in nested_hull_indices:
-            continue
-        # boundingRect -> (x, y, w, h)
-        rects.append(Rect(i, *cv.boundingRect(h)))
+    print("Detecting LEDs...")
+    results: List[Rect] = []
+    for i in range(diff_frames.shape[0]):
+        blurred = _cv.blur(diff_frames[i], (3, 3))
+        edges = _cv.Canny(blurred, CANNY_LOW_THRESHOLD, CANNY_LOW_THRESHOLD * 3, 3)
+        contours, _ = _cv.findContours(edges, _cv.RETR_EXTERNAL, _cv.CHAIN_APPROX_SIMPLE)
+        hulls: List[_np.ndarray] = []
+        for c in contours:
+            hulls.append(_cv.convexHull(c))
+        # Find the indices of hulls that lie inside another hull.
+        nested_hull_indices: Set[int] = set()
+        if len(hulls) > 1:
+            for j, h1 in enumerate(hulls):
+                for k, h2 in enumerate(hulls):
+                    if h1 is h2:
+                        continue
+                    area, _ = _cv.intersectConvexConvex(h1, h2, handleNested=True)
+                    if area > 0.0:
+                        if area == _cv.contourArea(h1):
+                            nested_hull_indices.add(j)
+                        elif area == _cv.contourArea(h2):
+                            nested_hull_indices.add(k)
+        # Create bounding rectanges
+        for j, h in enumerate(hulls):
+            if j in nested_hull_indices:
+                continue
+            # boundingRect -> (x, y, w, h)
+            results.append(Rect(i, *_cv.boundingRect(h)))
 
-
-if len(rects) == 0:
-    print("Failed to find any LEDs")
-    exit(1)
-for r in rects:
-    print(f"  {r}")
+    return results
 
 
-grayframes = get_frames(cv.VideoCapture("target_p03_gray.mp4"), grayscale=True)
-timeline = Timeline()
-print("Tracking LED state changes...")
-timeline.record(rects, grayframes)
-with open("target_p05_timeline.csv", "w+") as f:
-    f.write(str(timeline))
+def record_states_to_csv(source: str, destination: str, leds: List[Rect]) -> None:
+    grayframes = _get_frames(_cv.VideoCapture(source), grayscale=True)
+    timeline = _Timeline()
+    print("Tracking LED state changes...")
+    timeline.record(leds, grayframes)
+    with open(destination, "w+") as f:
+        f.write(str(timeline))
+
+
+if __name__ == "__main__":
+    rects = detect_leds("target_p04_diff.mp4")
+
+    if len(rects) == 0:
+        print("Failed to find any LEDs")
+        exit(1)
+    for r in rects:
+        print(f"  {r}")
+
+    record_states_to_csv("target_p03_gray.mp4", "target_p05_timeline.csv", rects)

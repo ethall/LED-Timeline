@@ -3,10 +3,14 @@ import os
 import cv2 as cv
 
 from _util import Scrubber, get_frames
+from p01_extract_valid_frames import extract_valid_frames
+from p02_denoise import denoise
+from p03_gray import to_grayscale
+from p04_diff import to_intensity_difference
 
 
 if not os.path.exists("target_p01_valid.mp4"):
-    import p01_extract_valid_frames
+    extract_valid_frames("target.mp4", "target_p01_valid.mp4")
 color_movie_viewer = Scrubber(
     get_frames(cv.VideoCapture("target_p01_valid.mp4")), window_title="color"
 )
@@ -15,7 +19,7 @@ color_movie_viewer.wait()
 
 
 if not os.path.exists("target_p02_denoised.mp4"):
-    import p02_denoise
+    denoise("target_p01_valid.mp4", "target_p02_denoised.mp4")
 denoised_color_movie_viewer = Scrubber(
     get_frames(cv.VideoCapture("target_p02_denoised.mp4")), window_title="denoised color"
 )
@@ -24,7 +28,7 @@ denoised_color_movie_viewer.wait()
 
 
 if not os.path.exists("target_p03_gray.mp4"):
-    import p03_gray
+    to_grayscale("target_p02_denoised.mp4", "target_p03_gray.mp4")
 gray_movie_viewer = Scrubber(
     get_frames(cv.VideoCapture("target_p03_gray.mp4")), window_title="gray"
 )
@@ -33,7 +37,7 @@ gray_movie_viewer.wait()
 
 
 if not os.path.exists("target_p04_diff.mp4"):
-    import p04_diff
+    to_intensity_difference("target_p03_gray.mp4", "target_p04_diff.mp4")
 scaled_diff_viewer = Scrubber(
     get_frames(cv.VideoCapture("target_p04_diff.mp4")), window_title="scaled diff"
 )
