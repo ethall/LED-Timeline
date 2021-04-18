@@ -2,7 +2,6 @@ import argparse
 import random as rng  # Used for colors
 
 import cv2 as cv
-import numpy as np
 
 
 rng.seed(12345)  # Used for colors
