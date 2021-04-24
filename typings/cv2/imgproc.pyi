@@ -3,7 +3,7 @@ import typing
 
 import numpy
 
-from .core.types import Size
+from .core.types import Point, Size
 
 class ColorConversionCodes(enum.Enum):
     COLOR_BGR2GRAY = ...
@@ -34,6 +34,9 @@ RETR_CCOMP = RetrievalModes.RETR_CCOMP
 RETR_TREE = RetrievalModes.RETR_TREE
 RETR_FLOODFILL = RetrievalModes.RETR_FLOODFILL
 
+def approxPolyDP(
+    curve: numpy.ndarray, epsilon: float, closed: bool
+) -> numpy.ndarray: ...
 def blur(src: numpy.ndarray, ksize: Size) -> numpy.ndarray: ...
 def boundingRect(array: numpy.ndarray) -> typing.Tuple[int, int, int, int]: ...
 def Canny(
@@ -42,9 +45,22 @@ def Canny(
 def contourArea(contour: numpy.ndarray) -> float: ...
 def convexHull(points: numpy.ndarray) -> numpy.ndarray: ...
 def cvtColor(src: numpy.ndarray, code: ColorConversionCodes) -> numpy.ndarray: ...
+def drawContours(
+    image: numpy.ndarray,
+    contours: typing.List[numpy.ndarray],
+    contourIdx: int,
+    color: typing.Tuple[int, int, int],
+) -> numpy.ndarray: ...
 def findContours(
     image: numpy.ndarray, mode: RetrievalModes, method: ContourApproximationModes
 ) -> typing.Tuple[typing.List[numpy.ndarray], numpy.ndarray]: ...
 def intersectConvexConvex(
     _p1: numpy.ndarray, _p2: numpy.ndarray, handleNested: bool = ...
 ) -> typing.Tuple[float, numpy.ndarray]: ...
+def rectangle(
+    img: numpy.ndarray,
+    pt1: Point,
+    pt2: Point,
+    color: typing.Tuple[int, int, int],
+    thickness: int = ...,
+) -> numpy.ndarray: ...

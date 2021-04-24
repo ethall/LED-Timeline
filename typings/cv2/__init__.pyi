@@ -1,3 +1,4 @@
+from .highgui import *
 from .imgproc import *
 from .photo import *
 from .videocapture import *
