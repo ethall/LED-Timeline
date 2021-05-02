@@ -1,0 +1,24 @@
+{
+    "denoise": {
+        "searchWindowSize": 15,
+        "strength": 3,
+        "templateWindowSize": 7,
+        "temporalWindowSize": 3
+    },
+    "diff": {
+        "minimumThreshold": 128
+    },
+    "detect": {
+        "blur": {
+            "kernelSize": {
+                "width": 3,
+                "height": 3
+            }
+        },
+        "canny": {
+            "aperture": 3,
+            "lowThreshold": 50,
+            "lowThresholdMultiplier": 3
+        }
+    }
+}

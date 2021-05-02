@@ -4,11 +4,10 @@ from typing import Dict, List, Set
 import cv2 as _cv
 import numpy as _np
 
-from _util import get_frames as _get_frames
+from _util import Config as _Config, get_frames as _get_frames
 
 
-CANNY_LOW_THRESHOLD = 50
-LED_ON_LOW_THRESHOLD = 128
+_cfg = _Config("config.json")
 
 
 class Rect:
@@ -45,8 +44,9 @@ class _LedState(enum.Enum):
         frame = grayframe[
             rect.y : (rect.y + rect.height), rect.x : (rect.x + rect.width)
         ]
-        frame[frame < LED_ON_LOW_THRESHOLD] = 0
-        return _LedState.ON if frame.mean() > LED_ON_LOW_THRESHOLD else _LedState.OFF
+        led_min_threshold = _cfg.diff.minimum_threshold
+        frame[frame < led_min_threshold] = 0
+        return _LedState.ON if frame.mean() > led_min_threshold else _LedState.OFF
 
 
 class _Timeline:
@@ -78,12 +78,27 @@ class _Timeline:
 def detect_leds(source: str) -> List[Rect]:
     diff_frames = _get_frames(_cv.VideoCapture(source), grayscale=True)
 
+    ksize = (
+        _cfg.detect.blur.kernel_size.width,
+        _cfg.detect.blur.kernel_size.height,
+    )
+    aperture = _cfg.detect.canny.aperture
+    low_threshold = _cfg.detect.canny.low_threshold
+    low_threshold_mult = _cfg.detect.canny.low_threshold_multiplier
+
     print("Detecting LEDs...")
     results: List[Rect] = []
     for i in range(diff_frames.shape[0]):
-        blurred = _cv.blur(diff_frames[i], (3, 3))
-        edges = _cv.Canny(blurred, CANNY_LOW_THRESHOLD, CANNY_LOW_THRESHOLD * 3, 3)
-        contours, _ = _cv.findContours(edges, _cv.RETR_EXTERNAL, _cv.CHAIN_APPROX_SIMPLE)
+        blurred = _cv.blur(diff_frames[i], ksize)
+        edges = _cv.Canny(
+            blurred,
+            low_threshold,
+            low_threshold * low_threshold_mult,
+            apertureSize=aperture,
+        )
+        contours, _ = _cv.findContours(
+            edges, _cv.RETR_EXTERNAL, _cv.CHAIN_APPROX_SIMPLE
+        )
         hulls: List[_np.ndarray] = []
         for c in contours:
             hulls.append(_cv.convexHull(c))

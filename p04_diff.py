@@ -1,7 +1,14 @@
 import cv2 as _cv
 import numpy as _np
 
-from _util import get_frames as _get_frames, matrix_to_video as _matrix_to_video
+from _util import (
+    Config as _Config,
+    get_frames as _get_frames,
+    matrix_to_video as _matrix_to_video,
+)
+
+
+_cfg = _Config("config.json")
 
 
 def to_intensity_difference(source: str, destination: str) -> None:
@@ -33,7 +40,7 @@ def to_intensity_difference(source: str, destination: str) -> None:
     diff_gray_movie = _np.diff(_np.array(gray_movie, _np.int16), axis=0)  # type: ignore
 
     print("Removing decreasing and small intensity changes...")
-    diff_gray_movie[diff_gray_movie < 128] = 0
+    diff_gray_movie[diff_gray_movie < _cfg.diff.minimum_threshold] = 0
     # Adjust max values to prevent unsafe casting side-effects.
     # (Having a value greater than +255 ought to be impossible,
     # but better safe than sorry.)

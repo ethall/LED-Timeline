@@ -1,7 +1,114 @@
-from typing import Optional
+import json
+from typing import Any, Dict, Optional
 
 import cv2 as cv
 import numpy as np
+
+
+class Config:
+    class Denoise:
+        def __init__(self, **kwargs: int) -> None:
+            self.search_window_size = kwargs["searchWindowSize"]
+            self.strength = kwargs["strength"]
+            self.template_window_size = kwargs["templateWindowSize"]
+            self.temporal_window_size = kwargs["temporalWindowSize"]
+
+        def serialize(self) -> Dict[str, int]:
+            return {
+                "searchWindowSize": self.search_window_size,
+                "strength": self.strength,
+                "templateWindowSize": self.template_window_size,
+                "temporalWindowSize": self.temporal_window_size,
+            }
+
+    class Detect:
+        class Blur:
+            class Kernel:
+                def __init__(self, **kwargs: int) -> None:
+                    self.width = kwargs["width"]
+                    self.height = kwargs["height"]
+
+                def serialize(self) -> Dict[str, int]:
+                    return {
+                        "width": self.width,
+                        "height": self.height,
+                    }
+
+            def __init__(self, **kwargs: Any) -> None:
+                self.kernel_size = Config.Detect.Blur.Kernel(**kwargs["kernelSize"])
+
+            def serialize(self) -> Dict[str, Any]:
+                return {
+                    "kernelSize": self.kernel_size.serialize(),
+                }
+
+        class Canny:
+            def __init__(self, **kwargs: int) -> None:
+                self.aperture = kwargs["aperture"]
+                self.low_threshold = kwargs["lowThreshold"]
+                self.low_threshold_multiplier = kwargs["lowThresholdMultiplier"]
+
+            def serialize(self) -> Dict[str, int]:
+                return {
+                    "aperture": self.aperture,
+                    "lowThreshold": self.low_threshold,
+                    "lowThresholdMultiplier": self.low_threshold_multiplier,
+                }
+
+        def __init__(self, **kwargs: Any) -> None:
+            self.blur = Config.Detect.Blur(**kwargs["blur"])
+            self.canny = Config.Detect.Canny(**kwargs["canny"])
+
+        def serialize(self) -> Dict[str, Any]:
+            return {
+                "blur": self.blur.serialize(),
+                "canny": self.canny.serialize(),
+            }
+
+    class Diff:
+        def __init__(self, **kwargs: int) -> None:
+            self.minimum_threshold = kwargs["minimumThreshold"]
+
+        def serialize(self) -> Dict[str, int]:
+            return {
+                "minimumThreshold": self.minimum_threshold,
+            }
+
+    def __new__(cls, file: str) -> "Config":
+        singleton = cls.__dict__.get("__singleton__")
+        if singleton is not None:
+            return singleton
+        cls.__singleton__ = super(Config, cls).__new__(cls)
+        return cls.__singleton__
+
+    def __init__(self, file: str) -> None:
+        import os.path
+
+        self._initial_config: Dict[str, Any] = {}
+        self.file = os.path.abspath(file)
+        self.denoise: Config.Denoise
+        self.detect: Config.Detect
+        self.diff: Config.Diff
+        self.reload()
+
+    def reload(self) -> None:
+        with open(self.file, "r") as config:
+            self._initial_config = json.load(config)
+
+        self.denoise = Config.Denoise(**self._initial_config["denoise"])
+        self.detect = Config.Detect(**self._initial_config["detect"])
+        self.diff = Config.Diff(**self._initial_config["diff"])
+
+    def save(self) -> None:
+        with open(self.file, "w") as config:
+            json.dump(self.serialize(), config, indent=4)
+
+    def serialize(self) -> Dict[str, Any]:
+        return {
+            "denoise": self.denoise.serialize(),
+            "diff": self.diff.serialize(),
+            "detect": self.detect.serialize(),
+        }
 
 
 class Scrubber:
