@@ -11,7 +11,7 @@ class Scrubber:
         self.window_title = window_title
         self.trackbar_name = "frame"
 
-    def _trackbar_callback(self, value):
+    def _trackbar_callback(self, value: int) -> None:
         cv.imshow(self.window_title, self.matrix[value])
 
     def create(self):
@@ -21,7 +21,7 @@ class Scrubber:
             self.window_title,
             0,
             self.matrix.shape[0] - 1,
-            self._trackbar_callback
+            self._trackbar_callback,
         )
         self._trackbar_callback(0)
 
@@ -29,10 +29,7 @@ class Scrubber:
         cv.waitKey()
 
 
-def get_frames(
-    video: cv.VideoCapture,
-    grayscale: bool = False
-) -> np.ndarray:
+def get_frames(video: cv.VideoCapture, grayscale: bool = False) -> np.ndarray:
     """AssertionError is raised if a frame cannot be read."""
     video.set(cv.CAP_PROP_POS_AVI_RATIO, 0)
 
@@ -41,10 +38,10 @@ def get_frames(
     width = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
     height = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
 
-    result = np.zeros(
-        (frame_count, height, width) if grayscale else (frame_count, height, width, 3),
-        np.uint8
+    shape = (
+        (frame_count, height, width) if grayscale else (frame_count, height, width, 3)
     )
+    result = np.zeros(shape, np.uint8)  # type: ignore
 
     for index in range(frame_count):
         success, frame = video.read()
@@ -62,7 +59,7 @@ def matrix_to_video(
     width: int,
     height: int,
     frame_count: Optional[int] = None,
-    is_color: bool = True
+    is_color: bool = True,
 ) -> None:
     """`frame_count` defaults to matrix.shape[0] if None."""
     _codec = cv.VideoWriter_fourcc(*codec)
