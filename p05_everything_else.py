@@ -4,7 +4,11 @@ from typing import Dict, List, Set
 import cv2 as _cv
 import numpy as _np
 
-from _util import Config as _Config, get_frames as _get_frames
+from _util import (
+    Config as _Config,
+    get_frames as _get_frames,
+    get_frame_times as _get_frame_times,
+)
 
 
 _cfg = _Config("config.json")
@@ -50,29 +54,34 @@ class _LedState(enum.Enum):
 
 
 class _Timeline:
-    _headers: List[str]
-    _store: Dict[int, List[_LedState]]
-
-    def __init__(self):
+    def __init__(self, source: str):
         super().__init__()
-        self._headers = ["frame"]
-        self._store = {}
+        self._headers: List[str] = ["frame", "timestamp"]
+        self._state_store: Dict[int, List[_LedState]] = {}
+
+        video = _cv.VideoCapture(source)
+        self.grayframes = _get_frames(video, grayscale=True)
+        self.timestamps = _get_frame_times(video)
+        video.release()
 
     def __str__(self) -> str:
         rows: List[str] = [",".join(self._headers)]
-        frames = list(self._store.keys())
+        frames = list(self._state_store.keys())
         frames.sort()
-        for k in frames:
-            cells: List[str] = [f"{k}"]
-            cells += [str(int(state.value)) for state in self._store[k]]
+        for f, t in zip(frames, self.timestamps):
+            cells: List[str] = [str(f)]
+            cells += [str(t)]
+            cells += [str(int(state.value)) for state in self._state_store[f]]
             rows.append(",".join(cells))
         return "\n".join(rows)
 
-    def record(self, rects: List[Rect], grayframes: _np.ndarray) -> None:
+    def record(self, rects: List[Rect]) -> None:
         """grayframes: _np.ndarray(t, y, x)"""
         self._headers += [r.name.replace(",", ";") for r in rects]
-        for i in range(grayframes.shape[0]):
-            self._store[i] = [_LedState.get_state(r, grayframes[i]) for r in rects]
+        for i in range(self.grayframes.shape[0]):
+            self._state_store[i] = [
+                _LedState.get_state(r, self.grayframes[i]) for r in rects
+            ]
 
 
 def detect_leds(source: str) -> List[Rect]:
@@ -131,10 +140,9 @@ def detect_leds(source: str) -> List[Rect]:
 
 
 def record_states_to_csv(source: str, destination: str, leds: List[Rect]) -> None:
-    grayframes = _get_frames(_cv.VideoCapture(source), grayscale=True)
-    timeline = _Timeline()
+    timeline = _Timeline(source)
     print("Tracking LED state changes...")
-    timeline.record(leds, grayframes)
+    timeline.record(leds)
     with open(destination, "w+") as f:
         f.write(str(timeline))
 
