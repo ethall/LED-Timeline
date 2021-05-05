@@ -1,87 +1,17 @@
-import enum
-from typing import Dict, List, Set
+from typing import List, Set
 
 import cv2 as _cv
 import numpy as _np
 
 from _util import (
     Config as _Config,
+    Rect,
+    Timeline,
     get_frames as _get_frames,
-    get_frame_times as _get_frame_times,
 )
 
 
 _cfg = _Config("config.json")
-
-
-class Rect:
-    frame: int
-    x: int
-    y: int
-    width: int
-    height: int
-
-    def __init__(self, frame: int, x: int, y: int, width: int, height: int):
-        super().__init__()
-        self.frame = frame
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-
-    def __str__(self) -> str:
-        return f"{self.name.replace(',', ', ')} @ frame {self.frame}"
-
-    @property
-    def name(self) -> str:
-        return f"({self.x}x,{self.y}y,{self.width}w,{self.height}h)"
-
-
-@enum.unique
-class _LedState(enum.Enum):
-    ON = True
-    OFF = False
-
-    @staticmethod
-    def get_state(rect: Rect, grayframe: _np.ndarray) -> "_LedState":
-        """grayframe: _np.ndarray(y, x)"""
-        frame = grayframe[
-            rect.y : (rect.y + rect.height), rect.x : (rect.x + rect.width)
-        ]
-        led_min_threshold = _cfg.diff.minimum_threshold
-        frame[frame < led_min_threshold] = 0
-        return _LedState.ON if frame.mean() > led_min_threshold else _LedState.OFF
-
-
-class _Timeline:
-    def __init__(self, source: str):
-        super().__init__()
-        self._headers: List[str] = ["frame", "timestamp"]
-        self._state_store: Dict[int, List[_LedState]] = {}
-
-        video = _cv.VideoCapture(source)
-        self.grayframes = _get_frames(video, grayscale=True)
-        self.timestamps = _get_frame_times(video)
-        video.release()
-
-    def __str__(self) -> str:
-        rows: List[str] = [",".join(self._headers)]
-        frames = list(self._state_store.keys())
-        frames.sort()
-        for f, t in zip(frames, self.timestamps):
-            cells: List[str] = [str(f)]
-            cells += [str(t)]
-            cells += [str(int(state.value)) for state in self._state_store[f]]
-            rows.append(",".join(cells))
-        return "\n".join(rows)
-
-    def record(self, rects: List[Rect]) -> None:
-        """grayframes: _np.ndarray(t, y, x)"""
-        self._headers += [r.name.replace(",", ";") for r in rects]
-        for i in range(self.grayframes.shape[0]):
-            self._state_store[i] = [
-                _LedState.get_state(r, self.grayframes[i]) for r in rects
-            ]
 
 
 def detect_leds(source: str) -> List[Rect]:
@@ -140,9 +70,9 @@ def detect_leds(source: str) -> List[Rect]:
 
 
 def record_states_to_csv(source: str, destination: str, leds: List[Rect]) -> None:
-    timeline = _Timeline(source)
+    timeline = Timeline(source)
     print("Tracking LED state changes...")
-    timeline.record(leds)
+    timeline.record(leds, _cfg.diff.minimum_threshold)
     with open(destination, "w+") as f:
         f.write(str(timeline))
 

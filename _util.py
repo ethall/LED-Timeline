@@ -1,4 +1,5 @@
 import datetime
+import enum
 import json
 from decimal import Decimal, ROUND_DOWN as DECIMAL_ROUND_DOWN
 from typing import Any, Dict, List
@@ -113,6 +114,57 @@ class Config:
         }
 
 
+@enum.unique
+class LedState(enum.Enum):
+    ON = True
+    OFF = False
+
+    @staticmethod
+    def _crop(rect: "Rect", grayframe: np.ndarray) -> Any:
+        return grayframe[
+            rect.y : (rect.y + rect.height), rect.x : (rect.x + rect.width)
+        ]
+
+    @staticmethod
+    def get_state(
+        rect: "Rect", grayframe: np.ndarray, threshold: int, desired_state: "LedState"
+    ) -> "LedState":
+        """grayframe: np.ndarray(y, x)"""
+        frame = rect.crop(grayframe)
+        if desired_state == LedState.ON:
+            frame[frame < threshold] = 0  # type: ignore
+            return LedState.ON if frame.mean() > threshold else LedState.OFF  # type: ignore
+        else:
+            frame[frame > threshold] = 0  # type: ignore
+            return LedState.ON if frame.mean() < threshold else LedState.OFF  # type: ignore
+
+
+class Rect:
+    frame: int
+    x: int
+    y: int
+    width: int
+    height: int
+
+    def __init__(self, frame: int, x: int, y: int, width: int, height: int):
+        super().__init__()
+        self.frame = frame
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def __str__(self) -> str:
+        return f"{self.name.replace(',', ', ')} @ frame {self.frame}"
+
+    @property
+    def name(self) -> str:
+        return f"({self.x}x,{self.y}y,{self.width}w,{self.height}h)"
+
+    def crop(self, frame: np.ndarray) -> np.ndarray:
+        return frame[self.y : (self.y + self.height), self.x : (self.x + self.width)]
+
+
 class Scrubber:
     def __init__(self, matrix: np.ndarray, window_title: str = "Scrubber"):
         """matrix is some np.array(time,height,width[,chan])"""
@@ -136,6 +188,38 @@ class Scrubber:
 
     def wait(self):
         cv.waitKey()
+
+
+class Timeline:
+    def __init__(self, source: str):
+        super().__init__()
+        self._headers: List[str] = ["frame", "timestamp"]
+        self._state_store: Dict[int, List[LedState]] = {}
+
+        video = cv.VideoCapture(source)
+        self.grayframes = get_frames(video, grayscale=True)
+        self.timestamps = get_frame_times(video)
+        video.release()
+
+    def __str__(self) -> str:
+        rows: List[str] = [",".join(self._headers)]
+        frames = list(self._state_store.keys())
+        frames.sort()
+        for f, t in zip(frames, self.timestamps):
+            cells: List[str] = [str(f)]
+            cells += [str(t)]
+            cells += [str(int(state.value)) for state in self._state_store[f]]
+            rows.append(",".join(cells))
+        return "\n".join(rows)
+
+    def record(self, rects: List[Rect], threshold: int) -> None:
+        """grayframes: _np.ndarray(t, y, x)"""
+        self._headers += [r.name.replace(",", ";") for r in rects]
+        for i in range(self.grayframes.shape[0]):
+            self._state_store[i] = [
+                LedState.get_state(r, self.grayframes[i], threshold, LedState.ON)
+                for r in rects
+            ]
 
 
 class Timestamp(datetime.time):
