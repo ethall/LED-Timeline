@@ -76,7 +76,12 @@ class _Timeline:
 
 
 def detect_leds(source: str) -> List[Rect]:
-    diff_frames = _get_frames(_cv.VideoCapture(source), grayscale=True)
+    diff_frames: _np.ndarray
+
+    video = _cv.VideoCapture(source)
+    diff_frames = _get_frames(video, grayscale=True)
+    video.release()
+    del video
 
     ksize = (
         _cfg.detect.blur.kernel_size.width,

@@ -59,6 +59,8 @@ def to_intensity_difference(source: str, destination: str) -> None:
         is_color=False,
     )
 
+    vid.release()
+
 
 if __name__ == "__main__":
     to_intensity_difference("target_p03_gray.mp4", "target_p04_diff.mp4")

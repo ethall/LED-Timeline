@@ -54,6 +54,8 @@ def denoise(source: str, destination: str) -> None:
         int(vid.get(_cv.CAP_PROP_FRAME_HEIGHT)),
     )
 
+    vid.release()
+
 
 if __name__ == "__main__":
     denoise("target_p01_valid.mp4", "target_p02_denoised.mp4")

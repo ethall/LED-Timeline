@@ -30,6 +30,8 @@ def to_grayscale(source: str, destination: str) -> None:
         is_color=False,
     )
 
+    vid.release()
+
 
 if __name__ == "__main__":
     to_grayscale("target_p02_denoised.mp4", "target_p03_gray.mp4")
