@@ -6,7 +6,7 @@ def extract_valid_frames(source: str, destination: str) -> None:
     video = _cv.VideoCapture(source)
 
     codec = _cv.VideoWriter_fourcc(*"mp4v")
-    fps = int(video.get(_cv.CAP_PROP_FPS))
+    fps = video.get(_cv.CAP_PROP_FPS)
     width = int(video.get(_cv.CAP_PROP_FRAME_WIDTH))
     height = int(video.get(_cv.CAP_PROP_FRAME_HEIGHT))
 

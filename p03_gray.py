@@ -24,7 +24,7 @@ def to_grayscale(source: str, destination: str) -> None:
         gray_movie,
         destination,
         "mp4v",
-        int(vid.get(_cv.CAP_PROP_FPS)),
+        vid.get(_cv.CAP_PROP_FPS),
         int(vid.get(_cv.CAP_PROP_FRAME_WIDTH)),
         int(vid.get(_cv.CAP_PROP_FRAME_HEIGHT)),
         is_color=False,

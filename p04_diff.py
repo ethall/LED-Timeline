@@ -53,7 +53,7 @@ def to_intensity_difference(source: str, destination: str) -> None:
         scaled_diff_gray,
         destination,
         "mp4v",
-        int(vid.get(_cv.CAP_PROP_FPS)),
+        vid.get(_cv.CAP_PROP_FPS),
         int(vid.get(_cv.CAP_PROP_FRAME_WIDTH)),
         int(vid.get(_cv.CAP_PROP_FRAME_HEIGHT)),
         is_color=False,

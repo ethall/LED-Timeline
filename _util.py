@@ -212,21 +212,16 @@ def matrix_to_video(
     matrix: np.ndarray,
     filepath: str,
     codec: str,
-    fps: int,
+    fps: float,
     width: int,
     height: int,
-    frame_count: Optional[int] = None,
     is_color: bool = True,
 ) -> None:
-    """`frame_count` defaults to matrix.shape[0] if None."""
     _codec = cv.VideoWriter_fourcc(*codec)
 
     output = cv.VideoWriter(filepath, _codec, fps, (width, height), isColor=is_color)
 
-    if frame_count is None:
-        frame_count = matrix.shape[0]
-
-    for index in range(frame_count):
+    for index in range(matrix.shape[0]):
         output.write(matrix[index])
 
     output.release()

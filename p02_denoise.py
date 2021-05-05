@@ -49,7 +49,7 @@ def denoise(source: str, destination: str) -> None:
         denoised_color_movie,
         destination,
         "mp4v",
-        int(vid.get(_cv.CAP_PROP_FPS)),
+        vid.get(_cv.CAP_PROP_FPS),
         int(vid.get(_cv.CAP_PROP_FRAME_WIDTH)),
         int(vid.get(_cv.CAP_PROP_FRAME_HEIGHT)),
     )
