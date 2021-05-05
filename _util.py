@@ -1,5 +1,7 @@
+import datetime
 import json
-from typing import Any, Dict, Optional
+from decimal import Decimal, ROUND_DOWN as DECIMAL_ROUND_DOWN
+from typing import Any, Dict, List
 
 import cv2 as cv
 import numpy as np
@@ -136,6 +138,18 @@ class Scrubber:
         cv.waitKey()
 
 
+class Timestamp(datetime.time):
+    """ISO-8601 microsecond timestamp format."""
+
+    def __repr__(self) -> str:
+        classname = self.__class__.__name__
+        args = f"{self.hour}, {self.minute}, {self.second}, {self.microsecond}"
+        return f"{classname}({args})"
+
+    def __str__(self) -> str:
+        return super().isoformat(timespec="microseconds")
+
+
 def get_frames(video: cv.VideoCapture, grayscale: bool = False) -> np.ndarray:
     """AssertionError is raised if a frame cannot be read."""
     video.set(cv.CAP_PROP_POS_AVI_RATIO, 0)
@@ -156,6 +170,42 @@ def get_frames(video: cv.VideoCapture, grayscale: bool = False) -> np.ndarray:
         result[index] = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) if grayscale else frame
 
     return result
+
+
+def get_frame_times(video: cv.VideoCapture) -> List[Timestamp]:
+    def decimal_to_int(value: Decimal) -> int:
+        return int(value.to_integral_value(rounding=DECIMAL_ROUND_DOWN))
+
+    period = Decimal(1 / Decimal(video.get(cv.CAP_PROP_FPS)))
+
+    timeline_seconds = [
+        Decimal(period * i).quantize(Decimal("0.000001"), rounding=DECIMAL_ROUND_DOWN)
+        for i in range(int(video.get(cv.CAP_PROP_FRAME_COUNT)))
+    ]
+
+    results: List[Timestamp] = []
+
+    seconds_per_hour = 3600
+    seconds_per_minute = 60
+    for seconds in timeline_seconds:
+        remaining_seconds = decimal_to_int(seconds)
+
+        hours = remaining_seconds // seconds_per_hour
+        remaining_seconds -= seconds_per_hour * hours
+
+        minutes = remaining_seconds // seconds_per_minute
+        remaining_seconds -= seconds_per_minute * minutes
+
+        microseconds = seconds - int(seconds)
+        microseconds = microseconds.shift(
+            abs(microseconds.as_tuple().exponent)
+        ).normalize()
+
+        results.append(
+            Timestamp(hours, minutes, remaining_seconds, decimal_to_int(microseconds))
+        )
+
+    return results
 
 
 def matrix_to_video(
