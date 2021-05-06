@@ -7,8 +7,10 @@ from .core.types import Point, Size
 
 class ColorConversionCodes(enum.Enum):
     COLOR_BGR2GRAY = ...
+    COLOR_GRAY2BGR = ...
 
 COLOR_BGR2GRAY = ColorConversionCodes.COLOR_BGR2GRAY
+COLOR_GRAY2BGR = ColorConversionCodes.COLOR_GRAY2BGR
 
 class ContourApproximationModes(enum.Enum):
     CHAIN_APPROX_NONE = ...
