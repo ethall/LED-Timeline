@@ -140,22 +140,16 @@ class LedState(enum.Enum):
 
 
 class Rect:
-    frame: int
-    x: int
-    y: int
-    width: int
-    height: int
-
-    def __init__(self, frame: int, x: int, y: int, width: int, height: int):
+    def __init__(self, x: int, y: int, width: int, height: int):
         super().__init__()
-        self.frame = frame
         self.x = x
         self.y = y
         self.width = width
         self.height = height
 
     def __str__(self) -> str:
-        return f"{self.name.replace(',', ', ')} @ frame {self.frame}"
+        # return f"{self.name.replace(',', ', ')} @ frame {self.frame}"
+        return f"{self.name.replace(',', ', ')}"
 
     @property
     def name(self) -> str:
