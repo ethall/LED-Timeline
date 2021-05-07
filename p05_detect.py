@@ -81,6 +81,8 @@ class _DisplayManager:
         self.display_rectangles = False
         self.frame_number = 1
         self.last_result: LedDetectionResults
+        self.show = True
+        self.two_windows = False
 
     def create(self) -> None:
         _cv.namedWindow(self.window_name)
@@ -192,7 +194,7 @@ class _DisplayManager:
         self.config.save()
         _cv.setTrackbarPos(self.save_trackbar, self.window_name, int(False))
 
-    def update_image(self, show: bool = True, two_windows: bool = False) -> _np.ndarray:
+    def update_image(self) -> _np.ndarray:
         result = detect_leds(
             self.frames[self.frame_number],
             (
@@ -204,9 +206,9 @@ class _DisplayManager:
             self.config.detect.canny.low_threshold_multiplier,
         )
         self.last_result = result
-        return self.redraw_image(show, two_windows)
+        return self.redraw_image()
 
-    def redraw_image(self, show: bool = True, two_windows: bool = False) -> _np.ndarray:
+    def redraw_image(self) -> _np.ndarray:
         display_frame: _np.ndarray = _cv.cvtColor(
             self.frames[self.frame_number], _cv.COLOR_GRAY2BGR
         )
@@ -225,8 +227,8 @@ class _DisplayManager:
                     display_frame, (r.x, r.y), (r.x + r.width, r.y + r.height), color
                 )
 
-        if show:
-            if show and two_windows:
+        if self.show:
+            if self.show and self.two_windows:
                 _cv.imshow(self.window_name_image, display_frame)
             else:
                 _cv.imshow(self.window_name, display_frame)
@@ -246,7 +248,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--adjust",
-        help="Whether to adjust configuration values.",
+        help="Adjust configuration values in a single window.",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--adjust-separate",
+        help="Adjust configuration values in two windows.",
         default=False,
         action="store_true",
     )
@@ -273,15 +281,17 @@ if __name__ == "__main__":
     cfg = Config(args.config)
     displaymanager = _DisplayManager(diff_frames, cfg)
 
-    if not args.adjust:
+    if not args.adjust and not args.adjust_separate:
         print("Detecting LEDs...")
         displaymanager.display_contours = True
         displaymanager.display_hulls = True
         displaymanager.display_rectangles = True
+        displaymanager.show = False
         for i in range(displaymanager.frames.shape[0]):
             displaymanager.frame_number = i
-            output.write(displaymanager.update_image(show=False))
+            output.write(displaymanager.update_image())
     else:
+        displaymanager.two_windows = args.adjust_separate
         displaymanager.create()
         displaymanager.wait()
 
