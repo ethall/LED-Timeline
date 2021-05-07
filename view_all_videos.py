@@ -43,3 +43,14 @@ scaled_diff_viewer = Scrubber(
 )
 scaled_diff_viewer.create()
 scaled_diff_viewer.wait()
+
+
+if not os.path.exists("target_p05_detect.mp4"):
+    print("Skipping part 5: video does not exist")
+    print("It can be created by running the 'p05_detect.py' script")
+else:
+    gray_movie_viewer = Scrubber(
+        get_frames(cv.VideoCapture("target_p05_detect.mp4")), window_title="detect"
+    )
+    gray_movie_viewer.create()
+    gray_movie_viewer.wait()
