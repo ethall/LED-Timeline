@@ -304,7 +304,6 @@ if __name__ == "__main__":
     del video
 
     codec = _cv.VideoWriter_fourcc(*"mp4v")
-    output = _cv.VideoWriter("target_p05_detect.mp4", codec, fps, (width, height))
 
     cfg = Config(args.config)
     displaymanager = _DisplayManager(diff_frames, cfg)
@@ -312,6 +311,8 @@ if __name__ == "__main__":
 
     if not args.adjust and not args.adjust_separate:
         print("Detecting LEDs...")
+        output = _cv.VideoWriter("target_p05_detect.mp4", codec, fps, (width, height))
+
         displaymanager.display_contours = True
         displaymanager.display_hulls = True
         displaymanager.display_rectangles = True
@@ -319,11 +320,11 @@ if __name__ == "__main__":
         for i in range(displaymanager.frames.shape[0]):
             displaymanager.frame_number = i
             output.write(displaymanager.update_image())
+
+        output.release()
     else:
         if args.display_size is not None:
             displaymanager.size = (args.display_size[0], args.display_size[1])
         displaymanager.two_windows = args.adjust_separate
         displaymanager.create()
         displaymanager.wait()
-
-    output.release()
