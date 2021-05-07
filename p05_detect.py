@@ -83,7 +83,11 @@ class _DisplayManager:
         self.last_result: LedDetectionResults
         self.show = True
         self.size: Optional[Tuple[int, int]] = None
+        self.topmost = False
         self.two_windows = False
+
+    def _set_topmost(self, winname: str) -> None:
+        _cv.setWindowProperty(winname, _cv.WND_PROP_TOPMOST, 1.0)
 
     def create(self) -> None:
         _cv.namedWindow(self.window_name)
@@ -233,8 +237,13 @@ class _DisplayManager:
 
         if self.show:
             if self.show and self.two_windows:
+                _cv.namedWindow(self.window_name_image)
+                if self.topmost:
+                    self._set_topmost(self.window_name_image)
                 _cv.imshow(self.window_name_image, display_frame)
             else:
+                if self.topmost:
+                    self._set_topmost(self.window_name_image)
                 _cv.imshow(self.window_name, display_frame)
 
         return display_frame
@@ -272,6 +281,12 @@ if __name__ == "__main__":
         type=int,
     )
     parser.add_argument(
+        "--topmost",
+        help="Set image window as the top-most window.",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
         "-c",
         "--config",
         help="Filepath of a valid JSON configuration.",
@@ -293,6 +308,7 @@ if __name__ == "__main__":
 
     cfg = Config(args.config)
     displaymanager = _DisplayManager(diff_frames, cfg)
+    displaymanager.topmost = args.topmost
 
     if not args.adjust and not args.adjust_separate:
         print("Detecting LEDs...")
