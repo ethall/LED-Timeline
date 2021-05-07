@@ -1,4 +1,4 @@
-from typing import ClassVar, List, NamedTuple, Set, Tuple
+from typing import ClassVar, List, NamedTuple, Optional, Set, Tuple
 
 import cv2 as _cv
 import numpy as _np
@@ -82,6 +82,7 @@ class _DisplayManager:
         self.frame_number = 1
         self.last_result: LedDetectionResults
         self.show = True
+        self.size: Optional[Tuple[int, int]] = None
         self.two_windows = False
 
     def create(self) -> None:
@@ -227,6 +228,9 @@ class _DisplayManager:
                     display_frame, (r.x, r.y), (r.x + r.width, r.y + r.height), color
                 )
 
+        if self.size is not None:
+            display_frame = _cv.resize(display_frame, self.size)
+
         if self.show:
             if self.show and self.two_windows:
                 _cv.imshow(self.window_name_image, display_frame)
@@ -257,6 +261,15 @@ if __name__ == "__main__":
         help="Adjust configuration values in two windows.",
         default=False,
         action="store_true",
+    )
+    parser.add_argument(
+        "--display-size",
+        help="Resize the image shown in the GUI. Only affects the display size.",
+        action="store",
+        default=None,
+        metavar=("X", "Y"),
+        nargs=2,
+        type=int,
     )
     parser.add_argument(
         "-c",
@@ -291,6 +304,8 @@ if __name__ == "__main__":
             displaymanager.frame_number = i
             output.write(displaymanager.update_image())
     else:
+        if args.display_size is not None:
+            displaymanager.size = (args.display_size[0], args.display_size[1])
         displaymanager.two_windows = args.adjust_separate
         displaymanager.create()
         displaymanager.wait()
